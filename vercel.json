@@ -1,0 +1,10 @@
+{
+  "builds": [
+    { "src": "index.html", "use": "@vercel/static" },
+    { "src": "pages/**/*.html", "use": "@vercel/static" }
+  ],
+  "routes": [
+    { "src": "/dashboard", "dest": "/pages/rh.dashboard.html" },
+    { "src": "/", "dest": "/index.html" }
+  ]
+}
