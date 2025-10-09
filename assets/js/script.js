@@ -1,5 +1,4 @@
 // START OF FILE script.js
-
 // Configuração do Firebase do TESTE (participante)
 const firebaseConfig = {
     apiKey: "AIzaSyCyH4CIG08T4bPDmYd5N-5Q1FSyTCMX_6I",
@@ -15,7 +14,6 @@ if (!firebase.apps?.length) {
     firebase.initializeApp(firebaseConfig);
 }
 const db = firebase.firestore();
-
 // Elementos de UI
 const homePage = document.getElementById('home-page');
 const quizPage = document.getElementById('quiz-page');
