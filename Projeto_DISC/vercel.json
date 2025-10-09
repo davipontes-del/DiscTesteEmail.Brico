@@ -1,11 +1,23 @@
 {
+  "version": 2,
   "builds": [
-    { "src": "pages/**/*.html", "use": "@vercel/static" },
-    { "src": "assets/**/*", "use": "@vercel/static" }
+    {
+      "src": "pages/**",
+      "use": "@vercel/static"
+    }
   ],
   "routes": [
-    { "src": "/dashboard", "dest": "/pages/rh_dashboard.html" },
-    { "src": "/", "dest": "/pages/index.html" },
-    { "src": "/assets/(.*)", "dest": "/assets/$1" }
+    {
+      "src": "/dashboard",
+      "dest": "/pages/rh_dashboard.html"
+    },
+    {
+      "src": "/assets/(.*)",
+      "dest": "/pages/assets/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/pages/index.html"
+    }
   ]
 }
