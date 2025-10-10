@@ -1,8 +1,8 @@
 {
-  "version": 2,
+  "version": 5,
   "builds": [
     {
-      "src": "api/trigger-workflow.js",
+      "src": "api/**/*.js",
       "use": "@vercel/node"
     },
     {
