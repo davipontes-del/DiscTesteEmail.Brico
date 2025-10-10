@@ -2,7 +2,7 @@
   "version": 2,
   "builds": [
     {
-      "src": "api/**/*.js",
+      "src": "api/trigger-workflow.js",
       "use": "@vercel/node"
     },
     {
@@ -11,6 +11,10 @@
     }
   ],
   "routes": [
+    {
+      "src": "/api/trigger-workflow",
+      "dest": "/api/trigger-workflow.js"
+    },
     {
       "src": "/dashboard",
       "dest": "/pages/rh_dashboard.html"
