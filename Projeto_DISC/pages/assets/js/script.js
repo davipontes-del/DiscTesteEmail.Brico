@@ -332,7 +332,7 @@ function calculateAndDisplayResults() {
         if (counts.hasOwnProperty(answer)) counts[answer]++;
     });
 
-    const total = discQuestions.length; // Total de perguntas para o cálculo de porcentagem
+    const total = discQuestions.length;
 
     const percentages = {
         D: Math.round((counts.D / total) * 100),
@@ -341,12 +341,24 @@ function calculateAndDisplayResults() {
         C: Math.round((counts.C / total) * 100)
     };
 
-    displayResultsCharts(counts, percentages); // Exibe os gráficos
-    const narrative = generateDiscNarrative(counts, total); // Gera a narrativa
-    displayResultsText(narrative); // Exibe o texto interpretativo
+    displayResultsCharts(counts, percentages);
+    const narrative = generateDiscNarrative(counts, total);
+    displayResultsText(narrative);
     saveResultsToFirebase(counts); // Salva os resultados no Firebase
-}
 
+    const dataForWebhook = {
+        nome: userFullName,
+        email: userEmail,
+        resultados: {
+            contagem: counts,
+            percentuais: percentages,
+            perfilPrincipal: narrative.principal,
+            perfilSecundario: narrative.secundario
+        },
+        timestamp: new Date().toISOString()
+    };
+    triggerWorkflowAPI(dataForWebhook);
+}
 // Salva no Firestore
 function saveResultsToFirebase(counts) {
     const timestamp = new Date().toISOString();
@@ -792,46 +804,33 @@ function displayResultsText(narrative) {
 
     profileTextEl.innerHTML = profileHtml;
 }
-// --- FIM DO CÓDIGO DO QUIZ DISC ---
-// --- CÓDIGO PARA CHAMAR A NOSSA API SERVERLESS NA VERCEL ---
-document.addEventListener('DOMContentLoaded', () => {
-  const triggerButton = document.getElementById('triggerButton');
+/**
+ * Função para enviar os resultados do teste para a API de workflow.
+ * @param {object} quizData - Os dados completos do resultado do teste.
+ */
+async function triggerWorkflowAPI(quizData) {
+  // O endereço da sua API na Vercel
+  const ourApiEndpoint = '/api/trigger-workflow'; 
 
-  triggerButton.addEventListener('click', async () => {
-    
-    // O endereço da NOSSA API que criamos na Vercel
-    const ourApiEndpoint = '/api/trigger-workflow'; 
+  console.log('Enviando dados do teste para a API de workflow:', quizData);
 
-    const data = {
-      produto: 'Livro de JavaScript (via Serverless)',
-      id: 54321,
-      timestamp: new Date().toISOString()
-    };
+  try {
+    const response = await fetch(ourApiEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(quizData),
+    });
 
-    console.log('Enviando dados para nossa API:', data);
-    alert('Enviando dados para o servidor...');
+    const result = await response.json();
 
-    try {
-      const response = await fetch(ourApiEndpoint, { // Chamando nossa API
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
-
-      const result = await response.json(); // Pega a resposta do nosso servidor
-
-      if (response.ok) {
-        console.log('Resposta do servidor:', result.message);
-        alert(result.message);
-      } else {
-        console.error('Falha:', result.message);
-        alert(`Ocorreu uma falha: ${result.message}`);
-      }
-    } catch (error) {
-      console.error('Erro de rede:', error);
-      alert('Ocorreu um erro de rede. Verifique o console.');
+    if (response.ok) {
+      console.log('API de Workflow acionada com sucesso:', result.message);
+    } else {
+      console.error('Falha ao acionar a API de Workflow:', result.message);
     }
-  });
-});
+  } catch (error) {
+    console.error('Erro de rede ao tentar acionar a API de Workflow:', error);
+  }
+}
