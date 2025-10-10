@@ -8,8 +8,11 @@
 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <!-- Chart.js para o gráfico no modal -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
 
     <style>
         /* Styles specific to rh_dashboard.html, overriding or complementing global.css */
@@ -19,7 +22,7 @@
         .container {
             background: #d1d1d1; /* Fundo do cartão para um cinza mais claro */
             color: #333333; /* Texto mais escuro para legibilidade no fundo claro */
-            max-width: 900px;
+            max-width: 963px;
             margin: auto;
             padding: 30px;
             border-radius: 10px;
@@ -39,19 +42,21 @@
         #results-table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 20px;
-            table-layout: fixed;
+            margin-top: 5px;
+            table-layout: auto; 
+            
         }
         #results-table th, #results-table td {
-            padding: 12px;
+            padding: 5px;
             border: 1px solid #bbbbbb; /* Borda mais clara para o tema claro */
-            text-align: left;
+            text-align: center;
             word-wrap: break-word;
             color: #333333; /* Texto escuro para células da tabela */
         }
         #results-table th {
             background-color: #a30000; /* Vermelho BricoBread */
             color: white;
+            white-space: nowrap;
         }
         #results-table tr:nth-child(even) {
             background-color: #e8e8e8; /* Fundo ligeiramente mais escuro que o container para listar */
@@ -75,7 +80,7 @@
             display: inline-block;
         }
         .btn-ver-grafico:hover {
-            background-color: #216ba0;
+            background-color: #125280;
         }
 
         /* Modal specific styles */
@@ -151,6 +156,26 @@
             margin-top: 20px;
             font-size: 0.95em;
         }
+        .modal-actions {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 5px; /* Espaçamento entre os botões */
+            flex-wrap: wrap; /* Para quebrar linha em telas pequenas */
+        }
+        .modal-actions button {
+            background-color: #34495e; /* Um cinza escuro para os botões de ação */
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: background-color 0.3s ease;
+        }
+        .modal-actions button:hover {
+            background-color: #2c3e50;
+        }
 
         /* Responsive adjustments for modal on smaller screens */
         @media (max-width: 600px) {
@@ -163,6 +188,9 @@
             }
             .chart-container {
                 height: 250px;
+            }
+            .modal-actions {
+                flex-direction: column; /* Botões um abaixo do outro em telas pequenas */
             }
         }
     </style>
@@ -188,16 +216,24 @@
             <tbody id="results-tbody"></tbody>
         </table>
     </div>
-
-    <!-- Modal para ver o gráfico do resultado -->
     <div id="resultado-modal" class="modal hidden">
         <div class="modal-content">
             <span id="modal-close" class="modal-close">&times;</span>
             <h2 id="modal-title">Resultado DISC</h2>
-            <div class="chart-container">
-                <canvas id="modal-chart"></canvas>
+<div class="charts-wrapper">
+                <div class="chart-container">
+                    <h3 class="chart-title">Contagem de Respostas</h3>
+                    <canvas id="modal-chart"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3 class="chart-title">Perfil Percentual (%)</h3>
+                    <canvas id="modal-radar-chart"></canvas> </div>
             </div>
             <div id="modal-profile" class="profile-text"></div>
+            <div class="modal-actions">
+                <button id="btn-download-jpeg">Baixar JPEG 🖼️</button>
+                <button id="btn-print-pdf">Imprimir PDF 📄</button>
+            </div>
         </div>
     </div>
     <script src="/assets/js/rh_dashboard.js"></script>

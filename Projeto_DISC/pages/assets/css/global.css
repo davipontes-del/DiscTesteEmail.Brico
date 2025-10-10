@@ -3,7 +3,7 @@
 body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 
-  /* Fundo degradê em tons de cinza, conforme a imagem de referência */
+  /* Fundo degradê em tons de cinza*/
   background: linear-gradient(
     to bottom,
     #333333 0%,
@@ -52,7 +52,6 @@ body {
 
 /* ===== Títulos ===== */
 h1 {
-  /* MODIFICAÇÃO: Cor do título h1 para azul, conforme a imagem destacada */
   color: #E0201C;
   margin-bottom: 20px;
   font-size: 1.5em;
@@ -329,15 +328,26 @@ button:hover { background-color: #8c0000; }
 
 
 /* ===== Results Page ===== */
-#results-page .chart-container {
+.charts-wrapper {
+    display: flex;
+    /* MODIFICAÇÃO: Força os gráficos a ficarem um abaixo do outro e centralizados */
+    flex-direction: column;
+    align-items: center; 
+    gap: 20px;
     width: 100%;
-    max-width: 300px;
-    margin: 20px auto;
+    margin-bottom: 20px;
 }
-#results-page .chart-container h3 {
-    color: #ffffff;
-    font-size: 1.1em;
+
+.chart-container {
+    position: relative;
+    width: 100%; /* Ocupa a largura do contêiner pai */
+}
+
+.chart-title {
+    color: #333;
+    font-size: 1em;
     margin-bottom: 10px;
+    font-weight: bold;
 }
 
 
@@ -435,16 +445,11 @@ button:hover { background-color: #8c0000; }
 
     .chart-group {
         display: flex;
-        flex-direction: column;
+        flex-direction: column; 
+        align-items: center;
         gap: 30px;
         flex: 1 1 45%;
         max-width: 450px;
-    }
-
-    #results-page .chart-container {
-        margin: 0;
-        width: 100%;
-        max-width: none;
     }
 
     #profile-text {

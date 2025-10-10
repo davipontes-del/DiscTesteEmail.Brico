@@ -368,135 +368,169 @@ function saveResultsToFirebase(counts) {
     });
 }
 
-// Exibe os gráficos (Barras e Radar)
-function displayResultsCharts(counts, percentages) {
-    // Limpa classes de cor antigas e adiciona a nova
-    participantNameEl.className = ''; 
+/**
+ * CONFIGURAÇÃO CENTRAL DOS PERFIS
+ * A "única fonte da verdade" para rótulos e cores. Mude aqui, e tudo muda automaticamente.
+ */
+const PROFILE_CONFIG = {
+    D: { label: "Dominante (D)", color: '#a30000' },
+    I: { label: "Influente (I)", color: '#2980b9' },
+    S: { label: "Estável (S)", color: '#318a20ff' },
+    C: { label: "Conforme (C)", color: '#555555' }
+};
+
+
+// --- FUNÇÕES AUXILIARES (Ferramentas para a função principal) ---
+
+/**
+ * Converte uma cor no formato hexadecimal (ex: #ff0000) para RGBA (ex: rgba(255,0,0,0.4)).
+ * @param {string} hex - A cor hexadecimal.
+ * @param {number} alpha - O nível de transparência (de 0 a 1).
+ * @returns {string} A cor no formato RGBA.
+ */
+function hexToRgba(hex, alpha = 0.4) {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+/**
+ * Atualiza o cabeçalho da página com o nome e a cor do perfil predominante.
+ * @returns {string} A chave do perfil predominante (ex: 'D', 'I', 'S' ou 'C').
+ */
+function updateHeader(element, percentages, userName) {
+    element.className = '';
     const predominantProfile = Object.keys(percentages).reduce((a, b) => percentages[a] > percentages[b] ? a : b);
-    participantNameEl.classList.add(`profile-${predominantProfile}`);
+    element.classList.add(`profile-${predominantProfile}`);
+    element.textContent = `Resultado do Teste DISC - BricoBread de ${userName}`;
+    return predominantProfile;
+}
 
-    participantNameEl.textContent = `Resultado do Teste DISC - BricoBread de ${userFullName}`;
-
-    const labels = ["Dominante (D)", "Influente (I)", "Estável (S)", "Conforme (C)"];
-    const barData = [counts.D, counts.I, counts.S, counts.C];
-    const radarData = [percentages.D, percentages.I, percentages.S, percentages.C];
-    const backgroundColors = ['#a30000', '#2980b9', '#318a20ff', '#555']; // Atualizado para usar o #318a20ff
-    const borderColors = ['#a30000', '#2980b9', '#318a20ff', '#555']; // Atualizado para usar o #318a20ff
-
-    // Gráfico de Barras
-    if (discBarChartInstance) discBarChartInstance.destroy();
-    if (discBarChartCtx) { // Verifica se o contexto existe
-        discBarChartInstance = new Chart(discBarChartCtx, {
-            type: 'bar',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Número de Respostas',
-                    data: barData,
-                    backgroundColor: backgroundColors,
-                    borderColor: borderColors,
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        max: discQuestions.length, // Maximo é o total de perguntas
-                        title: { display: true, text: 'Número de Respostas' },
-                        ticks: { stepSize: 1 }
-                    },
-                    x: {
-                        ticks: {
-                            maxRotation: 45,
-                            minRotation: 45,
-                            color: '#ffffff' // Cor da label do eixo X
-                        }
-                    }
+/**
+ * Cria e renderiza o gráfico de barras.
+ * @returns {Chart} A nova instância do gráfico de barras.
+ */
+function createBarChart(ctx, counts) {
+    const profileKeys = Object.keys(PROFILE_CONFIG);
+    
+    return new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: profileKeys.map(key => PROFILE_CONFIG[key].label),
+            datasets: [{
+                label: 'Número de Respostas',
+                data: profileKeys.map(key => counts[key]),
+                backgroundColor: profileKeys.map(key => PROFILE_CONFIG[key].color),
+                borderColor: profileKeys.map(key => PROFILE_CONFIG[key].color),
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: discQuestions.length,
+                    title: { display: true, text: 'Número de Respostas' },
+                    ticks: { stepSize: 1 }
                 },
-                plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                let label = context.dataset.label || '';
-                                if (label) {
-                                    label += ': ';
-                                }
-                                label += context.raw;
-                                return label;
-                            }
-                        }
+                x: {
+                    ticks: { maxRotation: 45, minRotation: 45, color: '#ffffff' }
+                }
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: (context) => `${context.dataset.label || ''}: ${context.raw}`
                     }
                 }
             }
-        });
+        }
+    });
+}
+
+/**
+ * Cria e renderiza o gráfico de radar.
+ * @returns {Chart} A nova instância do gráfico de radar.
+ */
+function createRadarChart(ctx, percentages, predominantProfile) {
+    const profileKeys = Object.keys(PROFILE_CONFIG);
+    const predominantColor = PROFILE_CONFIG[predominantProfile].color;
+    
+    return new Chart(ctx, {
+        type: 'radar',
+        data: {
+            labels: profileKeys.map(key => PROFILE_CONFIG[key].label),
+            datasets: [{
+                label: 'Seu Perfil (%)',
+                data: profileKeys.map(key => percentages[key]),
+                backgroundColor: hexToRgba(predominantColor, 0.4),
+                borderColor: predominantColor,
+                pointBackgroundColor: predominantColor,
+                pointBorderColor: '#fff',
+                pointHoverBackgroundColor: '#fff',
+                pointHoverBorderColor: predominantColor,
+                borderWidth: 2,
+                fill: true,
+                tension: 0.3
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: true,
+                    labels: { color: '#ffffff' }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: (context) => `${context.dataset.label || ''}: ${context.raw}%`
+                    }
+                }
+            },
+            scales: {
+                r: {
+                    angleLines: { color: '#888' },
+                    grid: { color: '#888' },
+                    pointLabels: { color: '#ffffff', font: { size: 12 } },
+                    ticks: {
+                        beginAtZero: true,
+                        max: 100,
+                        stepSize: 20,
+                        color: '#ffffff',
+                        backdropColor: 'rgba(0, 0, 0, 0.3)'
+                    }
+                }
+            }
+        }
+    });
+}
+
+/**
+ * Exibe os gráficos de resultados (Barras e Radar).
+ * @param {object} counts - Objeto com a contagem de respostas. Ex: {D: 10, I: 8, ...}
+ * @param {object} percentages - Objeto com as porcentagens. Ex: {D: 40, I: 32, ...}
+ */
+function displayResultsCharts(counts, percentages) {
+    // 1. Atualiza o cabeçalho e obtém o perfil principal
+    const predominantProfile = updateHeader(participantNameEl, percentages, userFullName);
+
+    // 2. Lida com o Gráfico de Barras
+    if (discBarChartInstance) {
+        discBarChartInstance.destroy();
+    }
+    if (discBarChartCtx) {
+        discBarChartInstance = createBarChart(discBarChartCtx, counts);
     }
 
-
-    // Gráfico Radar
-    if (discRadarChartInstance) discRadarChartInstance.destroy();
-    if (discRadarChartCtx) { // Verifica se o contexto existe
-        discRadarChartInstance = new Chart(discRadarChartCtx, {
-            type: 'radar',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Seu Perfil (%)',
-                    data: radarData,
-                    backgroundColor: `rgba(${parseInt(profileColors[predominantProfile].slice(1,3), 16)}, ${parseInt(profileColors[predominantProfile].slice(3,5), 16)}, ${parseInt(profileColors[predominantProfile].slice(5,7), 16)}, 0.4)`, // Cor do perfil dominante com transparência
-                    borderColor: profileColors[predominantProfile],
-                    pointBackgroundColor: profileColors[predominantProfile],
-                    pointBorderColor: '#fff',
-                    pointHoverBackgroundColor: '#fff',
-                    pointHoverBorderColor: profileColors[predominantProfile],
-                    borderWidth: 2,
-                    fill: true,
-                    tension: 0.3 // Linha suave
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: {
-                        display: true,
-                        labels: {
-                            color: '#ffffff' // Cor da legenda
-                        }
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                let label = context.dataset.label || '';
-                                if (label) {
-                                    label += ': ';
-                                }
-                                label += context.raw + '%';
-                                return label;
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    r: {
-                        angleLines: { color: '#888' }, // Cor das linhas de ângulo
-                        grid: { color: '#888' },      // Cor do grid
-                        pointLabels: {
-                            color: '#ffffff', // Cor das labels dos pontos (D,I,S,C)
-                            font: { size: 12 }
-                        },
-                        ticks: {
-                            beginAtZero: true,
-                            max: 100,
-                            stepSize: 20,
-                            color: '#ffffff', // Cor dos ticks do eixo radial
-                            backdropColor: 'rgba(0, 0, 0, 0.3)' // Fundo para ticks, se necessário
-                        }
-                    }
-                }
-            }
-        });
+    // 3. Lida com o Gráfico de Radar
+    if (discRadarChartInstance) {
+        discRadarChartInstance.destroy();
+    }
+    if (discRadarChartCtx) {
+        discRadarChartInstance = createRadarChart(discRadarChartCtx, percentages, predominantProfile);
     }
 }
 
@@ -560,62 +594,75 @@ function getStrengthBullets(percentages, profileDetails) {
 }
 
 
-function getCautionBullets(percentages, profileDetails, combinationText) {
-    const cautions = [];
-    const lowProfilesSorted = Object.entries(percentages)
-        .sort(([, a], [, b]) => a - b) // Ordena do mais baixo para o mais alto
-        .filter(([, value]) => getProfileBand(value) === "Muito baixo" || getProfileBand(value) === "Baixo");
+/**
+ * GERA PONTOS DE ATENÇÃO DE FORMA COERENTE E ROBUSTA
+ * Lógica revisada para equilibrar "excessos" e "faltas" dos perfis,
+ * adicionando contexto situacional de combinações e proteção contra dados incompletos.
+ *
+ * @param {object} percentages - Objeto com as porcentagens de cada perfil (D, I, S, C).
+ * @param {object} profileDetails - Objeto com detalhes dos perfis, incluindo listas de "cons".
+ * @param {string} combinationText - Texto descritivo da combinação de perfis.
+ * @returns {string[]} Array com até 3 pontos de atenção.
+ */
+function getCautionBullets(percentages, profileDetails = {}, combinationText = "") {
+    const cautions = new Set();
+    const MAX_CAUTIONS = 3;
 
-    // Adiciona as atenções gerais dos perfis baixos
-    lowProfilesSorted.forEach(([profileKey]) => {
-        if (profileDetails[profileKey] && profileDetails[profileKey].cons) {
-            profileDetails[profileKey].cons.forEach(con => {
-                if (!cautions.includes(con)) {
-                    cautions.push(con);
-                }
+    // Ordena os perfis do mais alto para o mais baixo
+    const sortedProfiles = Object.entries(percentages).sort(([, a], [, b]) => b - a);
+    const highProfiles = sortedProfiles.slice(0, 2);
+    const lowProfiles = sortedProfiles.slice(-2).reverse();
+
+    // Mapeamento de "faltas" — quando determinado fator é muito baixo (<25%)
+    const veryLowProfileCautions = new Map([
+        ['D', "Baixa tendência a tomar iniciativas ou assumir riscos diretos."],
+        ['I', "Dificuldade em se expressar abertamente e influenciar o ambiente social."],
+        ['S', "Falta de paciência para rotinas e resistência a manter ritmos constantes."],
+        ['C', "Preferência por flexibilidade em vez de regras, o que pode impactar a precisão."]
+    ]);
+
+    // --- 1. Adiciona "FALTAS" primeiro (baixo percentual) ---
+    lowProfiles.forEach(([profileKey, percentage]) => {
+        if (percentage < 25 && cautions.size < MAX_CAUTIONS) {
+            const specificCaution = veryLowProfileCautions.get(profileKey);
+            if (specificCaution) cautions.add(specificCaution);
+        }
+    });
+
+    // --- 2. Adiciona "EXCESSOS" dos perfis mais altos ---
+    highProfiles.forEach(([profileKey, percentage]) => {
+        const cons = profileDetails?.[profileKey]?.cons ?? [];
+        const principalValue = sortedProfiles[0][1];
+        const diffFromTop = principalValue - percentage;
+
+        // Adiciona apenas se for realmente um perfil predominante (>25% e diferença relevante)
+        if (percentage >= 25 && diffFromTop <= 20) {
+            cons.forEach(con => {
+                if (cautions.size < MAX_CAUTIONS) cautions.add(con);
             });
         }
     });
 
-    // Adiciona atenção específica para "muito baixo"
-    Object.entries(percentages).forEach(([profileKey, percentage]) => {
-        if (getProfileBand(percentage) === "Muito baixo" && percentage < 15) {
-            let specificCaution = "";
-            switch(profileKey) {
-                case 'D': specificCaution = "Baixa tendência a tomar iniciativas ou assumir riscos diretos."; break;
-                case 'I': specificCaution = "Dificuldade em se expressar abertamente e influenciar o ambiente social."; break;
-                case 'S': specificCaution = "Falta de paciência para rotinas e resiste a manter ritmos constantes."; break;
-                case 'C': specificCaution = "Prefere a flexibilidade a regras e procedimentos, o que pode impactar a precisão."; break;
-            }
-            if (specificCaution && !cautions.includes(specificCaution)) {
-                 cautions.unshift(specificCaution); // Adiciona no início
-            }
+    // --- 3. Adiciona atenções contextuais (texto de combinação) ---
+    const combinationCautionsMapping = [
+        { searchText: "prometer demais", cautionText: "Risco de prometer além da capacidade de execução." },
+        { searchText: "checar demais", cautionText: "Pode travar por excesso de checagem em cenários urgentes." },
+        { searchText: "evitar conversas difíceis", cautionText: "Tendência a adiar conversas difíceis para preservar a harmonia." },
+        { searchText: "acumular tensão", cautionText: "Risco de acumular tensões antes de se posicionar." },
+        { searchText: "inflexível", cautionText: "Risco de parecer inflexível diante de mudanças rápidas." },
+        { searchText: "perfeccionismo", cautionText: "Perfeccionismo que pode atrasar entregas e gerar desgaste." }
+    ];
+
+    const lowerText = combinationText.toLowerCase();
+    for (const mapping of combinationCautionsMapping) {
+        if (cautions.size >= MAX_CAUTIONS) break;
+        if (lowerText.includes(mapping.searchText)) {
+            cautions.add(mapping.cautionText);
         }
-    });
-
-    // Se a combinação já adiciona alguma atenção específica, prioriza ou ajusta
-    if (combinationText.includes("prometer demais") && !cautions.includes("Risco de prometer além do time ou de forma irrealista.")) {
-        cautions.push("Risco de prometer além do time ou de forma irrealista.");
-    }
-    if (combinationText.includes("travar por excesso de checagem") && !cautions.includes("Pode travar por excesso de checagem em cenários urgentes.")) {
-        cautions.push("Pode travar por excesso de checagem em cenários urgentes.");
-    }
-    if (combinationText.includes("evitar conversas difíceis") && !cautions.includes("Tendência a evitar conversas difíceis para preservar a harmonia.")) {
-        cautions.push("Tendência a evitar conversas difíceis para preservar a harmonia.");
-    }
-     if (combinationText.includes("não acumular tensão") && !cautions.includes("Risco de acumular tensões antes de se posicionar.")) {
-        cautions.push("Risco de acumular tensões antes de se posicionar.");
-    }
-    if (combinationText.includes("parecer inflexível") && !cautions.includes("Risco de parecer inflexível com processos e regras.")) {
-        cautions.push("Risco de parecer inflexível com processos e regras.");
-    }
-    if (combinationText.includes("perfeccionismo que atrasa") && !cautions.includes("Perfeccionismo que pode atrasar entregas.")) {
-        cautions.push("Perfeccionismo que pode atrasar entregas.");
     }
 
-
-    // Limita a 3 bullets no máximo
-    return cautions.slice(0, 3);
+    // Retorna o array limitado a no máximo 3 observações
+    return Array.from(cautions).slice(0, MAX_CAUTIONS);
 }
 
 // **Função Modificada: generateDiscNarrative**
