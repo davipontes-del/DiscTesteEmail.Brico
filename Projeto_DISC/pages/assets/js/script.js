@@ -792,3 +792,46 @@ function displayResultsText(narrative) {
 
     profileTextEl.innerHTML = profileHtml;
 }
+// --- FIM DO CÓDIGO DO QUIZ DISC ---
+// --- CÓDIGO PARA CHAMAR A NOSSA API SERVERLESS NA VERCEL ---
+document.addEventListener('DOMContentLoaded', () => {
+  const triggerButton = document.getElementById('triggerButton');
+
+  triggerButton.addEventListener('click', async () => {
+    
+    // O endereço da NOSSA API que criamos na Vercel
+    const ourApiEndpoint = '/api/trigger-workflow'; 
+
+    const data = {
+      produto: 'Livro de JavaScript (via Serverless)',
+      id: 54321,
+      timestamp: new Date().toISOString()
+    };
+
+    console.log('Enviando dados para nossa API:', data);
+    alert('Enviando dados para o servidor...');
+
+    try {
+      const response = await fetch(ourApiEndpoint, { // Chamando nossa API
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+
+      const result = await response.json(); // Pega a resposta do nosso servidor
+
+      if (response.ok) {
+        console.log('Resposta do servidor:', result.message);
+        alert(result.message);
+      } else {
+        console.error('Falha:', result.message);
+        alert(`Ocorreu uma falha: ${result.message}`);
+      }
+    } catch (error) {
+      console.error('Erro de rede:', error);
+      alert('Ocorreu um erro de rede. Verifique o console.');
+    }
+  });
+});
